@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Akıllı Kampüs Duyuru Sistemi</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f4f8;
+      color: #2d3748;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: linear-gradient(135deg, #1a56db, #1e40af);
+      color: white;
+      text-align: center;
+      padding: 24px 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    header h1 { font-size: 1.8rem; font-weight: 700; letter-spacing: 0.5px; }
+    header p  { font-size: 0.9rem; opacity: 0.85; margin-top: 4px; }
+
+    /* ── TOAST ── */
+    #toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      z-index: 999;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+    #toast.success { background: #276749; color: white; }
+    #toast.error   { background: #c53030; color: white; }
+
+    /* ── STATS ── */
+    .stats {
+      max-width: 1200px;
+      margin: 24px auto 0;
+      padding: 0 16px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 768px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+
+    .stat-card {
+      background: white;
+      border-radius: 10px;
+      padding: 16px 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      border-left: 4px solid #1a56db;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .stat-card.green  { border-color: #38a169; }
+    .stat-card.purple { border-color: #6b46c1; }
+    .stat-card.orange { border-color: #dd6b20; }
+    .stat-label { font-size: 0.78rem; color: #718096; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-value { font-size: 2rem; font-weight: 700; color: #1a202c; line-height: 1; }
+
+    /* ── MAIN GRID ── */
+    main {
+      max-width: 1200px;
+      margin: 20px auto 0;
+      padding: 0 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 768px) { main { grid-template-columns: 1fr; } }
+
+    /* ── PANELS ── */
+    .panel {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .panel-header {
+      background: #1a56db;
+      color: white;
+      padding: 14px 20px;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    .panel-body { padding: 20px; }
+
+    /* ── FORM ── */
+    .form-group { margin-bottom: 14px; }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 5px;
+    }
+    input[type="text"], input[type="email"], select, textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid #cbd5e0;
+      border-radius: 7px;
+      font-size: 0.9rem;
+      color: #2d3748;
+      background: #f7fafc;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: #1a56db; background: white; }
+    textarea { resize: vertical; min-height: 72px; }
+
+    .checkbox-group { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 4px; }
+    .checkbox-group label { display: flex; align-items: center; gap: 6px; font-weight: 400; cursor: pointer; }
+    .checkbox-group input[type="checkbox"] { width: 15px; height: 15px; accent-color: #1a56db; }
+
+    button[type="submit"] {
+      width: 100%;
+      padding: 10px;
+      background: #1a56db;
+      color: white;
+      border: none;
+      border-radius: 7px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 4px;
+    }
+    button[type="submit"]:hover { background: #1e40af; }
+
+    /* ── DIVIDER ── */
+    .divider { border: none; border-top: 1px solid #e2e8f0; margin: 20px 0; }
+
+    /* ── LIST ── */
+    .list-title { font-size: 0.95rem; font-weight: 600; color: #2d3748; margin-bottom: 12px; }
+    .list { display: flex; flex-direction: column; gap: 8px; }
+
+    .list-item {
+      padding: 10px 14px;
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .list-item-content { flex: 1; min-width: 0; }
+    .list-item .item-title { font-weight: 600; color: #1a56db; margin-bottom: 2px; }
+    .list-item .item-sub   { color: #718096; font-size: 0.8rem; }
+
+    .btn-delete {
+      background: #fff5f5;
+      color: #c53030;
+      border: 1px solid #fed7d7;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .btn-delete:hover { background: #c53030; color: white; }
+
+    /* ── BADGES ── */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-left: 6px;
+    }
+    .badge-blue   { background: #ebf4ff; color: #1a56db; }
+    .badge-green  { background: #f0fff4; color: #276749; }
+    .badge-orange { background: #fffaf0; color: #c05621; }
+    .badge-purple { background: #faf5ff; color: #6b46c1; }
+
+    /* ── FILTER BUTTONS ── */
+    .filter-bar {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .filter-btn {
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid #cbd5e0;
+      background: white;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #4a5568;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .filter-btn:hover  { border-color: #1a56db; color: #1a56db; }
+    .filter-btn.active { background: #1a56db; color: white; border-color: #1a56db; }
+
+    /* ── EMPTY ── */
+    .empty { color: #a0aec0; font-size: 0.85rem; text-align: center; padding: 12px 0; }
+
+    /* ── NOTIFICATION LOG ── */
+    .log-section {
+      max-width: 1200px;
+      margin: 24px auto 32px;
+      padding: 0 16px;
+    }
+    .log-panel {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      overflow: hidden;
+    }
+    .log-panel .panel-header { background: #2d3748; }
+    .log-body { padding: 20px; max-height: 320px; overflow-y: auto; }
+
+    .log-entry {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f4f8;
+      font-size: 0.85rem;
+    }
+    .log-entry:last-child { border-bottom: none; }
+    .log-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+    .log-time { color: #a0aec0; font-size: 0.75rem; white-space: nowrap; margin-top: 2px; }
+    .log-text { flex: 1; }
+    .log-text strong { color: #1a56db; }
+  </style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<header>
+  <h1>Akıllı Kampüs Duyuru Sistemi</h1>
+  <p>Öğrenci ve öğretmenlere anlık bildirim platformu</p>
+</header>
+
+<!-- İSTATİSTİK KARTLARI -->
+<div class="stats">
+  <div class="stat-card">
+    <div class="stat-label">Toplam Kullanıcı</div>
+    <div class="stat-value" id="statTotal">—</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-label">Öğrenci</div>
+    <div class="stat-value" id="statStudent">—</div>
+  </div>
+  <div class="stat-card purple">
+    <div class="stat-label">Öğretmen</div>
+    <div class="stat-value" id="statTeacher">—</div>
+  </div>
+  <div class="stat-card orange">
+    <div class="stat-label">Toplam Duyuru</div>
+    <div class="stat-value" id="statAnn">—</div>
+  </div>
+</div>
+
+<main>
+  <!-- SOL: Kullanıcı Yönetimi -->
+  <div class="panel">
+    <div class="panel-header">👤 Kullanıcı Yönetimi</div>
+    <div class="panel-body">
+
+      <form id="userForm">
+        <div class="form-group">
+          <label for="userName">Ad Soyad</label>
+          <input type="text" id="userName" placeholder="Örn: Ali Yılmaz" required />
+        </div>
+        <div class="form-group">
+          <label for="userEmail">E-posta</label>
+          <input type="email" id="userEmail" placeholder="Örn: ali@kampus.edu.tr" required />
+        </div>
+        <div class="form-group">
+          <label for="userType">Kullanıcı Tipi</label>
+          <select id="userType">
+            <option value="0">Öğrenci</option>
+            <option value="1">Öğretmen</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Bildirim Tercihleri</label>
+          <div class="checkbox-group">
+            <label><input type="checkbox" value="Email" /> E-posta</label>
+            <label><input type="checkbox" value="SMS" /> SMS</label>
+            <label><input type="checkbox" value="MobilBildirim" /> Mobil</label>
+          </div>
+        </div>
+        <button type="submit">Kullanıcı Ekle</button>
+      </form>
+
+      <hr class="divider" />
+
+      <div class="list-title">Kayıtlı Kullanıcılar</div>
+      <div class="list" id="userList">
+        <div class="empty">Yükleniyor...</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- SAĞ: Duyuru Yönetimi -->
+  <div class="panel">
+    <div class="panel-header">📢 Duyuru Yönetimi</div>
+    <div class="panel-body">
+
+      <form id="announcementForm">
+        <div class="form-group">
+          <label for="annTitle">Başlık</label>
+          <input type="text" id="annTitle" placeholder="Duyuru başlığı" required />
+        </div>
+        <div class="form-group">
+          <label for="annContent">İçerik</label>
+          <textarea id="annContent" placeholder="Duyuru içeriği..." required></textarea>
+        </div>
+        <div class="form-group">
+          <label for="annType">Duyuru Tipi</label>
+          <select id="annType">
+            <option value="0">Sınav</option>
+            <option value="1">Etkinlik</option>
+            <option value="2">Yemekhane</option>
+            <option value="3">Kütüphane</option>
+          </select>
+        </div>
+        <button type="submit">Duyuru Yayınla</button>
+      </form>
+
+      <hr class="divider" />
+
+      <div class="filter-bar" id="filterBar">
+        <button class="filter-btn active" data-type="-1">Tümü</button>
+        <button class="filter-btn" data-type="0">Sınav</button>
+        <button class="filter-btn" data-type="1">Etkinlik</button>
+        <button class="filter-btn" data-type="2">Yemekhane</button>
+        <button class="filter-btn" data-type="3">Kütüphane</button>
+      </div>
+
+      <div class="list-title">Yayınlanan Duyurular</div>
+      <div class="list" id="announcementList">
+        <div class="empty">Yükleniyor...</div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<!-- BİLDİRİM LOGU -->
+<div class="log-section">
+  <div class="log-panel">
+    <div class="panel-header">🔔 Bildirim Geçmişi</div>
+    <div class="log-body" id="logBody">
+      <div class="empty">Henüz bildirim gönderilmedi.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API = '';
+  const typeLabels  = ['Sınav', 'Etkinlik', 'Yemekhane', 'Kütüphane'];
+  const typeBadges  = ['badge-orange', 'badge-purple', 'badge-green', 'badge-blue'];
+  const userTypeLabels = ['Öğrenci', 'Öğretmen'];
+  const channelIcons = { Email: '📧', SMS: '📱', MobilBildirim: '🔔' };
+  const channelNames = { Email: 'E-posta', SMS: 'SMS', MobilBildirim: 'Mobil Bildirim' };
+
+  let allAnnouncements = [];
+  let activeFilter = -1;
+
+  // ── TOAST ──
+  function toast(message, type = 'success') {
+    const el = document.getElementById('toast');
+    el.textContent = message;
+    el.className = `show ${type}`;
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.className = ''; }, 3500);
+  }
+
+  // ── İSTATİSTİKLER ──
+  function updateStats(users, annCount) {
+    document.getElementById('statTotal').textContent   = users.length;
+    document.getElementById('statStudent').textContent = users.filter(u => u.userType === 0).length;
+    document.getElementById('statTeacher').textContent = users.filter(u => u.userType === 1).length;
+    document.getElementById('statAnn').textContent     = annCount;
+  }
+
+  // ── KULLANICI LİSTESİ ──
+  async function loadUsers() {
+    try {
+      const res   = await fetch(`${API}/api/users`);
+      const users = await res.json();
+      renderUsers(users);
+      updateStats(users, allAnnouncements.length);
+    } catch {
+      document.getElementById('userList').innerHTML = '<div class="empty">Yüklenirken hata oluştu.</div>';
+    }
+  }
+
+  function renderUsers(users) {
+    const list = document.getElementById('userList');
+    if (!users.length) {
+      list.innerHTML = '<div class="empty">Henüz kullanıcı eklenmedi.</div>';
+      return;
+    }
+    list.innerHTML = users.map(u => `
+      <div class="list-item">
+        <div class="list-item-content">
+          <div class="item-title">
+            ${escHtml(u.name)}
+            <span class="badge badge-blue">${userTypeLabels[u.userType] ?? u.userType}</span>
+          </div>
+          <div class="item-sub">${escHtml(u.email)} &bull; ${u.notificationPreferences || 'Tercih yok'}</div>
+        </div>
+        <button class="btn-delete" onclick="deleteUser(${u.id})">Sil</button>
+      </div>
+    `).join('');
+  }
+
+  // ── DUYURU LİSTESİ ──
+  async function loadAnnouncements() {
+    try {
+      const res = await fetch(`${API}/api/announcements`);
+      allAnnouncements = await res.json();
+      renderAnnouncements();
+      const usersRes = await fetch(`${API}/api/users`);
+      const users    = await usersRes.json();
+      updateStats(users, allAnnouncements.length);
+    } catch {
+      document.getElementById('announcementList').innerHTML = '<div class="empty">Yüklenirken hata oluştu.</div>';
+    }
+  }
+
+  function renderAnnouncements() {
+    const list = document.getElementById('announcementList');
+    const filtered = activeFilter === -1
+      ? allAnnouncements
+      : allAnnouncements.filter(a => a.type === activeFilter);
+
+    if (!filtered.length) {
+      list.innerHTML = '<div class="empty">Bu tipte duyuru yok.</div>';
+      return;
+    }
+    list.innerHTML = filtered.map(a => `
+      <div class="list-item">
+        <div class="list-item-content">
+          <div class="item-title">
+            ${escHtml(a.title)}
+            <span class="badge ${typeBadges[a.type] ?? 'badge-blue'}">${typeLabels[a.type] ?? a.type}</span>
+          </div>
+          <div class="item-sub">${escHtml(a.content)}</div>
+          <div class="item-sub">${new Date(a.createdAt).toLocaleString('tr-TR')}</div>
+        </div>
+        <button class="btn-delete" onclick="deleteAnnouncement(${a.id})">Sil</button>
+      </div>
+    `).join('');
+  }
+
+  // ── FİLTRE ──
+  document.getElementById('filterBar').addEventListener('click', (e) => {
+    const btn = e.target.closest('.filter-btn');
+    if (!btn) return;
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeFilter = parseInt(btn.dataset.type);
+    renderAnnouncements();
+  });
+
+  // ── SİLME ──
+  async function deleteUser(id) {
+    if (!confirm('Bu kullanıcıyı silmek istediğinize emin misiniz?')) return;
+    try {
+      const res = await fetch(`${API}/api/users/${id}`, { method: 'DELETE' });
+      if (res.status === 404) throw new Error('not_found');
+      if (!res.ok) throw new Error();
+      toast('✓ Kullanıcı silindi.');
+      await loadUsers();
+    } catch (err) {
+      toast(err.message === 'not_found' ? '✗ Kullanıcı bulunamadı.' : '✗ Silme işlemi başarısız.', 'error');
+    }
+  }
+
+  async function deleteAnnouncement(id) {
+    if (!confirm('Bu duyuruyu silmek istediğinize emin misiniz?')) return;
+    try {
+      const res = await fetch(`${API}/api/announcements/${id}`, { method: 'DELETE' });
+      if (res.status === 404) throw new Error('not_found');
+      if (!res.ok) throw new Error();
+      toast('✓ Duyuru silindi.');
+      await loadAnnouncements();
+    } catch (err) {
+      toast(err.message === 'not_found' ? '✗ Duyuru bulunamadı.' : '✗ Silme işlemi başarısız.', 'error');
+    }
+  }
+
+  // ── BİLDİRİM LOGU ──
+  function addLogEntries(announcement, users) {
+    const logBody = document.getElementById('logBody');
+    const empty   = logBody.querySelector('.empty');
+    if (empty) empty.remove();
+
+    const time = new Date().toLocaleTimeString('tr-TR');
+
+    users.forEach(user => {
+      const prefs = (user.notificationPreferences || '').split(',').map(p => p.trim()).filter(Boolean);
+      if (!prefs.length) return;
+
+      prefs.forEach(channel => {
+        const icon = channelIcons[channel] ?? '📨';
+        const ch   = channelNames[channel] ?? channel;
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.innerHTML = `
+          <div class="log-icon">${icon}</div>
+          <div class="log-text">
+            <strong>${escHtml(user.name)}</strong> adlı kullanıcıya
+            "<strong>${escHtml(announcement.title)}</strong>" duyurusu
+            <strong>${ch}</strong> kanalıyla gönderildi.
+          </div>
+          <div class="log-time">${time}</div>
+        `;
+        logBody.prepend(entry);
+      });
+    });
+  }
+
+  // ── FORMLAR ──
+  document.getElementById('userForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const checked = [...document.querySelectorAll('.checkbox-group input:checked')].map(c => c.value);
+    const body = {
+      name: document.getElementById('userName').value.trim(),
+      email: document.getElementById('userEmail').value.trim(),
+      userType: parseInt(document.getElementById('userType').value),
+      notificationPreferences: checked.join(',')
+    };
+    try {
+      const res = await fetch(`${API}/api/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) throw new Error();
+      toast('✓ Kullanıcı başarıyla eklendi.');
+      e.target.reset();
+      await loadUsers();
+    } catch {
+      toast('✗ Kullanıcı eklenirken hata oluştu.', 'error');
+    }
+  });
+
+  document.getElementById('announcementForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const body = {
+      title: document.getElementById('annTitle').value.trim(),
+      content: document.getElementById('annContent').value.trim(),
+      type: parseInt(document.getElementById('annType').value)
+    };
+    try {
+      const usersRes    = await fetch(`${API}/api/users`);
+      const users       = await usersRes.json();
+
+      const annRes      = await fetch(`${API}/api/announcements`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!annRes.ok) throw new Error();
+      const announcement = await annRes.json();
+
+      toast('✓ Duyuru başarıyla yayınlandı.');
+      e.target.reset();
+      addLogEntries(announcement, users);
+      await loadAnnouncements();
+    } catch {
+      toast('✗ Duyuru yayınlanırken hata oluştu.', 'error');
+    }
+  });
+
+  // ── YARDIMCI ──
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ── BAŞLANGIÇ ──
+  loadUsers();
+  loadAnnouncements();
+</script>
+
+</body>
+</html>

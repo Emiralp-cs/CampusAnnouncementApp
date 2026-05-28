@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir -p /Users/nurbanuesmergul/CampusAnnouncement/CampusAnnouncement/Infrastructure/Notifications)",
+      "Bash(dotnet restore *)",
+      "Bash(dotnet build *)",
+      "Bash(find /Users/nurbanuesmergul/CampusAnnouncement -type f | head -60 && echo \"---\" && ls /Users/nurbanuesmergul/CampusAnnouncement)",
+      "Read(//Users/nurbanuesmergul/CampusAnnouncement/**)"
+    ],
+    "additionalDirectories": [
+      "/Users/nurbanuesmergul/CampusAnnouncement/CampusAnnouncement/Infrastructure"
+    ]
+  }
+}
